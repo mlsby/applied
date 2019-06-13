@@ -244,4 +244,9 @@
       
       
       
+# Test mean on paired data ----
+  # The data in this case consists of D which is the difference of the paired data. 
+      
+      
+      
 # ----
