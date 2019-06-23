@@ -181,6 +181,15 @@
         # ellipse(mean, cov, radius, graphics...)
       # CR vs AR
       # Confidence Region is centerd in mu, Acceptance Region is centered in mu0, otherwise same.
+        # Radius of the ellipsoid
+        cfr.fisher <- ((n-1)*p/(n-p)) * qf(1-alpha,p,n-p)
+        r <- sqrt(cfr.fisher)
+        # Center 
+        M
+        # Direction of axises
+        eigen(S)$vec
+        # Length of semi
+        r*sqrt(eigen(S/n)$values) 
       
       # Test for the mean with level alpha without Gaussianity (Assymptotic)
       # H0: mu=mu0 vs H1: mu!=mu0
@@ -244,7 +253,7 @@
         # NOTE also that p_new = length(A%*%M), keep in mind if calculating cfr.fisher
         
         
-  # Test mean on paired data ----
+  # Test mean on paired data (diff)----
     # The data in this case consists of D which is the difference of the paired data. 
     # Assuming Gaussianity 
       mcshapiro.test(D)
@@ -259,7 +268,7 @@
       D.T2 <- n * (dM-delta.0) %*% dSinv %*% (dM-delta.0)
       cfr.fisher <- ((n-1)*p/(n-p))*qf(1-alpha,p,n-p)
       D.T2 < cfr.fisher # We reject/accept at level alpha 
-      
+      P <- 1-pf(dT2*(n-q)/((n-1)*q), q, n-q)
       # "worst" i.e. the direction in which delta0 is furthest away from the interval is:
       worst <- D.invcov %*% (D.mean-delta.0)
       worst <- worst/sqrt(sum(worst^2))
@@ -272,7 +281,7 @@
                     -1, 0, 1, 0,
                     -1, 0, 0, 1), 3, 4, byrow=T)
       delta.0 = c(0,0,0) # Hypothesis!! (q = 3 differences in this case )
-      dM <- C%*%sapply(X,mean)
+      dM <- C%*%colMeans(X)
       dS <- C%*%cov(X)%*%t(C)
       dSinv <- solve(dS)
       q <- length(dM)
@@ -317,13 +326,46 @@
       Bonf
       
       
-  # Confidence Region of 2 populations -----
+  # 2 populations -----
     # With probability 1-alpha the following will cover t(a)*(mu1-mu2)  
     # t(a)*(X1-X2) ± * c * qf(1-alpha, p, n1+n2-p-1) * sqrt(t(a)*(1/n1 + 1/n2)*Sp*a), in particualar
     # t(a)(X1_i-X2_i)                                            (1/n1 + 1/n2)*s_ii)
     # for i = 1...p
     # where Sp <- (n1 - 1)/(n1 + n2 -2)*S1 + (n2 - 1)/(n1 + n2 -2)*S2 
     # and c = (n1 + n2 -1)*p/(n1 + n2 - p - 1)
+      
+      mcshapiro.test(G1)
+      mcshapiro.test(G2)
+      
+      # Test for independent Gaussian populations
+      m1 <- sapply(G1,mean)
+      m2 <- sapply(G2,mean)
+      S1  <-  cov(G1)
+      S2  <-  cov(G2)
+      Sp      <- ((n1-1)*S1 + (n2-1)*S2)/(n1+n2-2)
+      
+      # Test: H0: mu.1-mu.2==0 vs H1: mu.1-mu.2!=0
+      delta.0 <- c(0,0,0,0,0)
+      Spinv   <- solve(Sp)
+      T2 <- n1*n2/(n1+n2) * (m1-m2-delta.0) %*% Spinv %*% (m1-m2-delta.0)
+      P <- 1 - pf(T2/(p*(n1+n2-2)/(n1+n2-1-p)), p, n1+n2-1-p)
+      P
+      
+      # Bonferroni conf interval mean 
+      k <- 4
+      df <- n1+n2-2
+      alpha <- 0.1
+      IC <- cbind(m2-m1 - sqrt(diag(Sp)*(1/n1+1/n2)) * qt(1 - alpha/(k*2), df),
+                  m2-m1,
+                  m2-m1 + sqrt(diag(Sp)*(1/n1+1/n2)) * qt(1 - alpha/(k*2), df))
+      
+      
+      # Bonferroni conf interval var
+      Bfvar <- cbind(df*diag(Sp)/qchisq(1 - alpha / (2*k), df),
+                  df*diag(Sp),
+                  df*diag(Sp)/qchisq(1 - alpha/(p*2), df))
+      
+      
   # One - way ANOVA ----
     # Test:
     ### Model: weigth.ij = mu + tau.i + eps.ij; eps.ij~N(0,sigma^2)
@@ -442,19 +484,19 @@
         data <- euros
         names(data) <- c('X','G','B')
         attach(data)
-        g <- 2 # nmbr of groups in first
-        b <- 2 # nmbr of groups in second
-        p <- 1 # dim = 1 since we are doing ANOVA
-        n <- 5 # in this example n_ij = n_kl for all groupcombos
-        N <- n*g*b 
         glev <- levels(G)
         blev <- levels(B)
+        g <- length(glev) # nmbr of groups in first
+        b <- length(blev) # nmbr of groups in second
+        p <- 1 # dim = 1 since we are doing ANOVA
+        n <- length(X[ G==glev[1] & B == blev[1] ]) # in this example n_ij = n_kl for all groupcombos
+        N <- n*g*b 
         
         # 1) normality (univariate) in each group
         Ps <- c(shapiro.test(X[ G==glev[1] & B == blev[1] ])$p,
-                shapiro.test(X[ G==glev[1] & B == blev[2]  ])$p,
-                shapiro.test(X[ G==glev[2] & B == blev[1]  ])$p,
-                shapiro.test(X[ G==glev[2] & B == blev[2]  ])$p)
+                shapiro.test(X[ G==glev[1] & B == blev[2] ])$p,
+                shapiro.test(X[ G==glev[2] & B == blev[1] ])$p,
+                shapiro.test(X[ G==glev[2] & B == blev[2] ])$p)
         Ps
         
         # 2) homogeneity of variances
@@ -464,7 +506,7 @@
                            X[ G==glev[2] & B == blev[2] ]))
         
         # 3) Fit the model:
-        fit <- aov(X ~ G + B)
+        fit <- aov(X ~ B + G + B:G)
         summary(fit)
         
         # Estimate variances (for everything) 
@@ -489,7 +531,7 @@
         m22  <- m + tau2 + beta2
         
         
-  # LDA/QDA ----
+  # LDA/QDA (Classifiers)----
     library(MASS)
     # Assumptions:
         # 1) X.i ~ N(mu.i, sigma.i^2), i=A,B (label)
@@ -521,7 +563,7 @@
       
       fit <- lda(X, grouping, prior=c(p1,p2)) #, CV = T) for cross-validation
       x <- data.frame(seq(min(X),max(X), 0.05))
-      LDA <- predict(fit,x)
+      LDA <- predict(fit,x)()
       # LDA$posterior returns the posterior probability of x belonging to each group
       
   # Knn ----
@@ -560,6 +602,8 @@
     cluster <- cutree(dat.clust, k=2) # Choose k
     table(cluster) #how many in each cluster?
     coph <- cophenetic(dat.clust)# compute the cophenetic matrices 
+    
+    # compute cophenetic coefficients (the closer to one the better)
     cc <- cor(dat.dist, coph)# compute cophenetic coefficient(s...?)
     
     # Visualization
@@ -595,6 +639,58 @@
     plot3d(dat, size=3, col=result.k$cluster+1, aspect = F) 
     points3d(result.k$centers, pch = 4, cex = 2, lwd = 4)
     
+  # Linear model ----
+    dat <- data.frame(x = NA,
+                      y = NA,
+                      z = NA,
+                      s = NA)
+    n <- length(x)
+    # linmod: y = beta0 + beta1*x + beta2*y + beta3*z + beta4*x*y
+    fit <- lm(s ~ x + y + z + x:y , data=dat)
+    
+    # linmod: 3 på varandra följande grupper 
+    xG <- c(x,y,z)
+    sG <- rep(s,3)
+    # g levels, g-1 dummies
+    datG <- data.frame(sG = sG, 
+                       xG2 = xG^2, 
+                       dumx = rep(c(1,0), c(n,2*n)),   # ones only on x
+                       dumy = rep(c(0,1,0), c(n,n,n))) # ones only on y
+    # Linmod: both of the following are equivalent
+    # Y | (X = x, G = g) = beta0.g + beta1.g * x^2 + eps
+    # Sg = b.0 + b.1*dumx + b.2*dumy + b.3*datG^2 + b.4*dumx*datG^2 + b.5*dumy*datG^2
+    fit <- lm(sG ~ dumx + dumy + xG2 + dumx:xG2 + dumy:xG2, data=datG) 
+    # note that z is not present, thus intercept for x, y, z would be:
+    # coef(fit)[1] + coef(fit)[2], coef(fit)[1] + coef(fit)[3] and coef(fit)[1]   
+    fit2 <- lm(sG ~ xG2 + xG2:dumx + xG2:dumy, data=datG) # reduced alternative
+    
+    # Residual investigation:
+    shapiro.test(residuals(fit)) # model assumptions!
+    shapiro.test(rstudent(fit))  # model assumptions!
+    x11()
+    par(mfrow=c(2,2))
+    plot(fit)
+    
+    # Linear hypothesis:
+    # H0: A*beta = c, beta and c vectors, A matrix
+    # ex: H0: c(b3,b4,b5) = c(2,3,4) vs ....
+    A <- rbind(c(0,0,0,1,0,0),
+               c(0,0,0,0,1,0),
+               c(0,0,0,0,0,1))
+    c <- c(2,3,4)
+    linearHypothesis(fit,A,c) # Basically just look at p-value
+    # the F-test would be c = (0,0,0)
+    
+    # Prediction: 
+    predict(fit, newdata = ndat,interval = 'prediction', level = 1-alpha)
+    # ndat is a data.frame with one value for each beta in fit
+    # The last two objects are just if you want an prediction interval 
+    # Example of prediction with dummy with a global 95% conf interval
+    new <- data.frame(xG2 = c(3,3,3)^2, dumx=c(1,0,0), dumy=c(0,1,0))
+    IP <- predict(fit2, newdata=new, interval='prediction', level=1-0.05/3)
+    
+    
+    
 # -------------------- Other --------------------
   # General function, good2know ----
       # Reading txt - files 
@@ -620,17 +716,17 @@
       #
   # Go2: Multivariate Test and CIs with lin-comb ----
     # General setting, data is given by X
-      X <- as.matrix(data)
+      X <- as.matrix(dat)
       # Test Gaussianity
       mcshapiro.test(X)
       # Set up
       alpha <- 0.01
       n <- dim(X)[1]
       p <- dim(X)[2]
-      A <- rbind(c(1,0,0),
-                 c(0,1,0),
-                 c(0,0,1)) # A = I => test & CI on each variable
-      M.A <- A %*% sapply(X,mean)
+      A <- matrix(c(-1, 1, 0, 0,
+                     0, -1, 1, 0,
+                     0, 0, -1, 1), 3, 4, byrow=T)
+      M.A <- A %*% sapply(X,mean) #colMeans(X)
       S.A <- A %*% cov(X) %*% t(A)
       Sinv.A <- solve(S.A)
       p.new <- length(M.A)
@@ -658,7 +754,7 @@
   
   # Go2: Multivariate Test and CIs without lin comb ---- 
     # General setting, data is given by X
-      X <- as.matrix(data)
+      #X <- as.matrix(data)
       # Test Gaussianity
       mcshapiro.test(X)
       # Set up
@@ -678,9 +774,9 @@
       P
       
       # T2 sim CI (mean)
-      T2 <- cbind( "Inf"= M-sqrt(cfr.fisher*S/n), 
-                   'Center' = M.A, 
-                   'Sup'= M+sqrt(cfr.fisher*S/n))
+      T2 <- cbind( "Inf"= M-sqrt(cfr.fisher*diag(S)/n), 
+                   'Center' = M, 
+                   'Sup'= M+sqrt(cfr.fisher*diag(S)/n))
       
       # Bonferroni CI
       k <- p.new
@@ -707,3 +803,90 @@
       
   # GOOD QUESTIONS----
       # LDA/QDA on multivariate with g >=3
+  # Estimate an elliptical region containing 99% of X ----
+      mcshapiro.test(X)
+      
+      M <- sapply(X, mean)
+      S <- cov(X)
+      alpha <- 0.01
+      cfr.chisq <- qchisq(1-alpha,p)
+      
+      # Characterize the ellipse:
+      # Axes directions:
+      eigen(S)$vectors
+      # Center:
+      M
+      # Radius of the ellipse:
+      r <- sqrt(cfr.chisq)
+      # Length of the semi-axes:
+      r*sqrt(eigen(S)$values)  
+      
+      x11()
+      plot(D, asp = 1, col='gold', pch=19, xlim=c(-10,50))
+      ellipse(center=M, shape=S, radius=sqrt(cfr.chisq), col = 'black', lty = 2, center.pch = 4)
+  
+  
+  # Geo ----
+      # data is dat with 1 and 2 col x, y, then other data i.e. zinc 
+      coordinates(dat) <- c('x','y')
+      v <- variogram(log(zinc) ~ 1, dat) 
+      #, alpha = c(0, 45, 90, 135)) or , cutoff = 1000, width = 1000/15) or 
+      # , boundaries = c(0,200,seq(400,1500,100)))
+      v.fit <- fit.variogram(v, vgm(1, "Sph", 800, 1)) # vgm(psill, model, range, nugget)
+      vgm() 
+      plot(v, v.fit, pch = 19)
+      # error:
+      attr(v.fit, 'SSErr')
+      # example where dirr: aplha = 45 gives us the major range. 
+      # i.e. the range in the direction with strongest correlation 
+      v.dir <- variogram(log(zinc)~1,meuse,alpha=(0:3)*45) 
+      v.anis <- vgm(.6, "Sph", 1600, .05, anis=c(45, 0.3))
+      
+      # kriging
+      g.tr <- gstat(formula = log(zinc) ~ 1, data = meuse, model = v.fit)
+      s0=as.data.frame(matrix(c(x0,y0),1,2))
+      names(s0)=c('X','Y')
+      coordinates(s0)=c('X','Y')
+      # Make the ordinary kriging prediction with the function:
+      predict(s0, g.tr, BLUE=FALSE) # Predicts a observatio given a distance
+      predict(s0, g.tr, BLUE=TRUE)  # Predicts a mean given a distance
+      
+      # Or if we have a model dependent of distance for example:
+      g.tr <- gstat(formula = zinc ~ D, data = meuse, model = v.fit)
+      D.s0=# some value 
+      s0=as.data.frame(matrix(c(x0,y0,D.s0),1,3))
+      names(s0)=c('X','Y','D')
+      coordinates(s0)=c('X','Y')
+      
+      #(a) Discontinuity at the origin: The process presents a highly irregular 
+      #    behavior and it is not L2-continuous. Such a discontinuity occurs in 
+      #    case of nugget effect, due to measurement errors, or microscale variability.
+      
+      #(b) Linear at the origin: Such a behavior is common in continuous but non- differentiable 
+      #    processes. The linear, exponential and spherical models are instances of such structures.
+      
+      #(c) Quadratic at the origin: The associated random field is very regular with smooth 
+      #    realizations, and often presents a drift term.
+      
+  # Ridge & Lasso ----
+    # Ridge
+      ls <- seq(0,10,0.01)
+      fit.ridge <- lm.ridge(Y ~ X1 + X2 , lambda = ls) 
+      lambda.opt <- ls[which.min(fit.ridge$GCV)]
+    # Lasso
+      library(glmnet)
+      x <- model.matrix(Y~X1+X2)[,-1]
+      # Build the vector of response
+      y <- Y
+      # Let's set a grid of candidate lambda's for the estimate
+      lambda.grid <- 10^seq(10,-2,length=100)
+      fit.lasso <- glmnet(x,y, lambda = lambda.grid) # default: alpha=1 -> lasso [note: if alpha=0 -> ridge regression]
+      cv.lasso <- cv.glmnet(x,y,lambda=lambda.grid) # with cross val
+      bestlam2 <- cv.lasso$lambda.min
+      predict(fit.lasso, s=bestlam2, type = 'coefficients')
+      
+      
+      
+      
+      
+      
