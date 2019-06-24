@@ -563,8 +563,12 @@
       
       fit <- lda(X, grouping, prior=c(p1,p2)) #, CV = T) for cross-validation
       x <- data.frame(seq(min(X),max(X), 0.05))
-      LDA <- predict(fit,x)()
+      LDA <- predict(fit,x)
       # LDA$posterior returns the posterior probability of x belonging to each group
+      
+      # Visualization
+      .....
+      
       
   # Knn ----
       # Returns a class which it would assign x to
@@ -573,6 +577,8 @@
       misc <- table(trueC = X.class, predictedC=predict(fit)$class)
       # AER (Actuall Error Rate) 
       # AER = p1*n12/(n11+n12) + p2*n21/(21+22) (confusion matrix aka misc)
+      # for 2 x 2: 
+      AER <- p1*misc[1,2]/(misc[1,1]+misc[1,2]) + p2*misc[2,1]/(misc[2,1]+misc[2,2])
       # Analytically calculated AER
       misclass <- function(x){
         prior[1]*(1 - pnorm(x, M1, SD)) + prior[2]*pnorm(x, M2, SD)
@@ -689,8 +695,6 @@
     new <- data.frame(xG2 = c(3,3,3)^2, dumx=c(1,0,0), dumy=c(0,1,0))
     IP <- predict(fit2, newdata=new, interval='prediction', level=1-0.05/3)
     
-    
-    
 # -------------------- Other --------------------
   # General function, good2know ----
       # Reading txt - files 
@@ -788,9 +792,9 @@
       
       
   # Univariate t-test ----
-      a <- c(0,0,0,0,0,0,0,-1,1,0)
-      X <- as.matrix(X)
-      t.test(X%*%a, alternative = 'two.sided', mu = delta.0, conf.level = 1-alpha)
+      a <- c(-1,1,0) # CHange this
+      alpha <- 0.02
+      t.test(as.matrix(X)%*%a, alternative = 'two.sided', mu = delta.0, conf.level = 1-alpha)
       # Testa om 2 mu är olika från 2 data (H0: mu1 = mu2)
       t.test(x = group1, y = group2, var.eq=T)
   # Testing if variance is equal ----
