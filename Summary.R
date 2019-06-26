@@ -268,7 +268,7 @@
       D.T2 <- n * (dM-delta.0) %*% dSinv %*% (dM-delta.0)
       cfr.fisher <- ((n-1)*p/(n-p))*qf(1-alpha,p,n-p)
       D.T2 < cfr.fisher # We reject/accept at level alpha 
-      P <- 1-pf(dT2*(n-q)/((n-1)*q), q, n-q)
+      P <- 1-pf(D.T2*(n-p)/((n-1)*p), p, n-p)
       # "worst" i.e. the direction in which delta0 is furthest away from the interval is:
       worst <- D.invcov %*% (D.mean-delta.0)
       worst <- worst/sqrt(sum(worst^2))
@@ -889,6 +889,17 @@
       bestlam2 <- cv.lasso$lambda.min
       predict(fit.lasso, s=bestlam2, type = 'coefficients')
       
+      
+      
+      
+      
+      
+  # Functional Data ----
+      
+  # Spooled ----
+      # to compare  mean(X1)-mean(X2) ( two population ) we estimate sigma (witch is assumed to be the same in both populations)
+      # Sigma is estimated by (1/n1 + 1/n2) * Spooled
+      # Spooled 
       
       
       
