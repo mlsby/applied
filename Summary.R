@@ -333,6 +333,11 @@
     # for i = 1...p
     # where Sp <- (n1 - 1)/(n1 + n2 -2)*S1 + (n2 - 1)/(n1 + n2 -2)*S2 
     # and c = (n1 + n2 -1)*p/(n1 + n2 - p - 1)
+      # Other comment
+    # to compare  mean(X1)-mean(X2) ( two population ) we estimate sigma (witch is assumed to be the same in both populations)
+    # Sigma is estimated by (1/n1 + 1/n2) * Spooled
+    # Spooled 
+      
       
       mcshapiro.test(G1)
       mcshapiro.test(G2)
@@ -345,14 +350,16 @@
       Sp      <- ((n1-1)*S1 + (n2-1)*S2)/(n1+n2-2)
       
       # Test: H0: mu.1-mu.2==0 vs H1: mu.1-mu.2!=0
-      delta.0 <- c(0,0,0,0,0)
+      delta.0 <- c(0,0)
       Spinv   <- solve(Sp)
       T2 <- n1*n2/(n1+n2) * (m1-m2-delta.0) %*% Spinv %*% (m1-m2-delta.0)
+      cfr.fisher <- (p*(n1+n2-2)/(n1+n2-1-p))*qf(1-alpha,p,n1+n2-1-p)
       P <- 1 - pf(T2/(p*(n1+n2-2)/(n1+n2-1-p)), p, n1+n2-1-p)
       P
       
-      # Bonferroni conf interval mean 
-      k <- 4
+      
+      # Bonferroni conf interval for difference in mean 
+      k <- 2
       df <- n1+n2-2
       alpha <- 0.1
       IC <- cbind(m2-m1 - sqrt(diag(Sp)*(1/n1+1/n2)) * qt(1 - alpha/(k*2), df),
@@ -364,6 +371,16 @@
       Bfvar <- cbind(df*diag(Sp)/qchisq(1 - alpha / (2*k), df),
                   df*diag(Sp),
                   df*diag(Sp)/qchisq(1 - alpha/(p*2), df))
+      
+      
+      # Bonferroni for all for means (two in G1 and 2 in G2)
+      k <- 4
+      df <- n1+n2-2
+      alpha <- 0.1
+      IC <- cbind(c(m1,m2) - sqrt(diag(Sp)) * qt(1 - alpha/(k*2), df),
+                  c(m1,m2),
+                  c(m1,m2) + sqrt(diag(Sp))* qt(1 - alpha/(k*2), df))
+      IC
       
       
   # One - way ANOVA ----
@@ -474,7 +491,7 @@
         Bf12 <- cbind(m1-m2 - qT * sqrt((1/ng[1]+1/ng[2])*W), m1-m2, m1-m2 + qT * sqrt((1/ng[1]+1/ng[2])*W))
         Bf23 <- cbind(m2-m3 - qT * sqrt((1/ng[2]+1/ng[3])*W), m2-m3, m2-m3 + qT * sqrt((1/ng[2]+1/ng[3])*W))
         Bf31 <- cbind(m3-m1 - qT * sqrt((1/ng[3]+1/ng[1])*W), m3-m1, m3-m1 + qT * sqrt((1/ng[3]+1/ng[1])*W))
-  # Two - way ANOVA (Alltså två stycken gruppeingar)----
+  # Two - way ANOVA (Alltså två stycken gruppeingar) + awesome bonferroni för anova ----
         ### Two-ways ANOVA
         ### Model without interaction (additive model): 
         ### X.ijk = mu + tau.i + beta.j + eps.ijk; eps.ijk~N(0,sigma^2), 
@@ -499,6 +516,11 @@
                 shapiro.test(X[ G==glev[2] & B == blev[2] ])$p)
         Ps
         
+        for(i in blev){
+          for (j in glev) {
+            message(i,j,shapiro.test(X[ G==j & B == i ])$p," ",length(X[ G==j & B == i ]))
+          }
+        }
         # 2) homogeneity of variances
         bartlett.test(list(X[ G==glev[1] & B == blev[1] ],
                            X[ G==glev[1] & B == blev[2] ],
@@ -529,6 +551,23 @@
         m12  <- m + tau1 + beta2
         m21 <- m + tau2 + beta1
         m22  <- m + tau2 + beta2
+        
+        # Estimate variances (for everything) 
+        W <- sum(fit$residuals^2)  # SS_res
+        Sp <- W/(N-b)     # SS_res/gdl(res)
+        m1 <- mean(X[B == blev[1]])
+        m2 <- mean(X[B == blev[2]])
+        m3 <- mean(X[B == blev[3]])
+        # Bonferroni conf interval mean 
+        k <- 3
+        df <- N-3
+        n1 = length(X[B == blev[1]])
+        n2 = length(X[B == blev[2]])
+        n3 = length(X[B == blev[3]])
+        alpha <- 0.01
+        IC <- cbind(c(m1-m2,m2-m3,m1-m3) - sqrt(Sp*(1/n1+1/n2+1/n3)) * qt(1 - alpha/(k*2), df),
+                    c(m1-m2,m2-m3,m1-m3),
+                    c(m1-m2,m2-m3,m1-m3) + sqrt(Sp*(1/n1+1/n2+1/n3)) * qt(1 - alpha/(k*2), df))
         
         
   # LDA/QDA (Classifiers)----
@@ -900,7 +939,7 @@
       # to compare  mean(X1)-mean(X2) ( two population ) we estimate sigma (witch is assumed to be the same in both populations)
       # Sigma is estimated by (1/n1 + 1/n2) * Spooled
       # Spooled 
-      
+      load("/Users/molsby/Documents/R/Applied_stat/fun/mcshapiro.test.RData")
       
       
       
