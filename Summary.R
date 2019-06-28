@@ -36,12 +36,12 @@
       
       # Plotting scores = outcome after linear transformation in relation to the two first PCAs
       x11()
-      plot(scores.tourists[,1:2])
+      plot(scores.data[,1:2])
       abline(h=0, v=0, lty=2, col='grey')
       
       # Scores with old variable directions
       x11()
-      biplot(pc.tourists)
+      biplot(pc.data)
   
   
   
@@ -558,18 +558,17 @@
         m1 <- mean(X[B == blev[1]])
         m2 <- mean(X[B == blev[2]])
         m3 <- mean(X[B == blev[3]])
-        # Bonferroni conf interval mean 
-        k <- 3
-        df <- N-3
         n1 = length(X[B == blev[1]])
         n2 = length(X[B == blev[2]])
         n3 = length(X[B == blev[3]])
+        # Bonferroni conf interval mean 
+        k <- 3
+        df <- N-3
         alpha <- 0.01
-        IC <- cbind(c(m1-m2,m2-m3,m1-m3) - sqrt(Sp*(1/n1+1/n2+1/n3)) * qt(1 - alpha/(k*2), df),
-                    c(m1-m2,m2-m3,m1-m3),
-                    c(m1-m2,m2-m3,m1-m3) + sqrt(Sp*(1/n1+1/n2+1/n3)) * qt(1 - alpha/(k*2), df))
-        
-        
+        IC <- cbind(c(-m1+m2,-m2+m3,m1-m3) - c(sqrt(Sp*(1/n1+1/n2)),sqrt(Sp*(1/n2+1/n3)),sqrt(Sp*(1/n1+1/n3))) * qt(1 - alpha/(k*2), df),
+                    c(-m1+m2,-m2+m3,m1-m3),
+                    c(-m1+m2,-m2+m3,m1-m3) + c(sqrt(Sp*(1/n1+1/n2)),sqrt(Sp*(1/n2+1/n3)),sqrt(Sp*(1/n1+1/n3))) * qt(1 - alpha/(k*2), df))
+        IC
   # LDA/QDA (Classifiers)----
     library(MASS)
     # Assumptions:
@@ -600,13 +599,32 @@
       prior.c <- c(prior[1]*ct2p1,prior[2]*ct1p2)/(ct1p2*prior[2]+ct2p1*prior[1])
       
       
-      fit <- lda(X, grouping, prior=c(p1,p2)) #, CV = T) for cross-validation
-      x <- data.frame(seq(min(X),max(X), 0.05))
-      LDA <- predict(fit,x)
+      fit <- lda(X, Xg) #, CV = T) for cross-validation
+      x  <- seq(min(X[,1]), max(X[,1]), length=200)
+      y  <- seq(min(X[,2]), max(X[,2]), length=200)
+      xy <- expand.grid(X1=x, X2=y)
+      LDA  <- predict(fit, xy)
+      
       # LDA$posterior returns the posterior probability of x belonging to each group
       
       # Visualization
-      .....
+      x11()
+      plot(X, main='Data', xlab='X1', ylab='X2', pch=20)
+      points(G1, col='red', pch=20)
+      points(G2, col='blue', pch=20)
+      legend('bottomleft', legend=levels(Xg), fill=c('blue','red'), cex=.7)
+      
+      points(fit$means, pch=4,col=c('blue','red') , lwd=2, cex=1.5)
+      
+      lines(LDA$post)
+      
+      z  <- LDA$post  
+      
+      z1 <- z[,1] - z[,2] 
+      z2 <- z[,2] - z[,1]  
+      contour(x, y, matrix(z1, 200), levels=0, drawlabels=F, add=T)  
+      contour(x, y, matrix(z2, 200), levels=0, drawlabels=F, add=T)
+      
       
       
   # Knn ----
@@ -709,6 +727,9 @@
     # coef(fit)[1] + coef(fit)[2], coef(fit)[1] + coef(fit)[3] and coef(fit)[1]   
     fit2 <- lm(sG ~ xG2 + xG2:dumx + xG2:dumy, data=datG) # reduced alternative
     
+    var(fit$residuals) # sigma^2 estimate
+    
+    
     # Residual investigation:
     shapiro.test(residuals(fit)) # model assumptions!
     shapiro.test(rstudent(fit))  # model assumptions!
@@ -726,16 +747,22 @@
     linearHypothesis(fit,A,c) # Basically just look at p-value
     # the F-test would be c = (0,0,0)
     
+    
     # Prediction: 
     predict(fit, newdata = ndat,interval = 'prediction', level = 1-alpha)
     # ndat is a data.frame with one value for each beta in fit
     # The last two objects are just if you want an prediction interval 
     # Example of prediction with dummy with a global 95% conf interval
-    new <- data.frame(xG2 = c(3,3,3)^2, dumx=c(1,0,0), dumy=c(0,1,0))
-    IP <- predict(fit2, newdata=new, interval='prediction', level=1-0.05/3)
+    alpha <- 0.01
+    k <- 2
+    new <- data.frame(Vi2 = 25^2, Va2 = 35^2, dum=1)
+    IP <- predict(fit.opt, newdata=new, interval='prediction', level=1-alpha/k)
+    IP
+    
     
 # -------------------- Other --------------------
   # General function, good2know ----
+    load("/Users/molsby/Documents/R/Applied_stat/fun/mcshapiro.test.RData")
       # Reading txt - files 
       data <- read.table('filename.txt', header=T)
       
@@ -939,7 +966,7 @@
       # to compare  mean(X1)-mean(X2) ( two population ) we estimate sigma (witch is assumed to be the same in both populations)
       # Sigma is estimated by (1/n1 + 1/n2) * Spooled
       # Spooled 
-      load("/Users/molsby/Documents/R/Applied_stat/fun/mcshapiro.test.RData")
+      
       
       
       
